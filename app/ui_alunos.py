@@ -9,8 +9,10 @@ from tkinter import messagebox, simpledialog, ttk
 
 try:
     from app import db as _db
+    from app import ui_theme as T
 except ImportError:
     import db as _db  # type: ignore
+    import ui_theme as T  # type: ignore
 
 
 def listar_alunos():
@@ -32,42 +34,46 @@ class AlunosFrame(ttk.Frame):
         super().__init__(parent)
         self.sessao = sessao
 
-        ttk.Label(self, text="Alunos", font=("TkDefaultFont", 12, "bold")).pack(anchor="w", pady=(0, 8))
+        T.screen_header(self, "Alunos")
 
         barra = ttk.Frame(self)
-        barra.pack(fill="x", pady=(0, 6))
+        barra.pack(fill="x", pady=(0, 10))
         ttk.Button(barra, text="Atualizar", command=self.carregar).pack(side="left")
-        ttk.Button(barra, text="Cadastrar", command=self.cadastrar).pack(side="left", padx=6)
+        ttk.Button(barra, text="Cadastrar", style="Primary.TButton",
+                   command=self.cadastrar).pack(side="left", padx=6)
         ttk.Button(barra, text="Editar", command=self.editar).pack(side="left")
-        ttk.Button(barra, text="Excluir", command=self.excluir).pack(side="left", padx=6)
+        ttk.Button(barra, text="Excluir", style="Danger.TButton",
+                   command=self.excluir).pack(side="left", padx=6)
 
-        self.tree = ttk.Treeview(self, columns=self.COLS, show="headings", height=16)
+        moldura = T.moldura(self)
+        moldura.pack(side="left", fill="both", expand=True)
+        self.tree = ttk.Treeview(moldura, columns=self.COLS, show="headings", height=16)
         for c, titulo, larg in (("id", "RA/ID", 80), ("nome", "Nome", 220),
                                 ("cpf", "CPF", 120), ("email", "E-mail", 200),
                                 ("curso", "Curso", 160), ("status", "Status", 100)):
-            self.tree.heading(c, text=titulo)
+            self.tree.heading(c, text=titulo, anchor="w" if c != "id" else "center")
             self.tree.column(c, width=larg, anchor="w" if c != "id" else "center")
-        scroll = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        scroll = ttk.Scrollbar(moldura, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scroll.set)
         self.tree.pack(side="left", fill="both", expand=True)
         scroll.pack(side="left", fill="y")
+        T.tag_setup(self.tree)
 
         self.carregar()
 
     # -- dados ------------------------------------------------------------
     def carregar(self):
-        for i in self.tree.get_children():
-            self.tree.delete(i)
+        T.tree_clear(self.tree)
         try:
             for a in listar_alunos():
-                self.tree.insert("", "end", values=(
+                T.tree_insert(self.tree, (
                     a.get("id_aluno", a.get("ra", a.get("id", ""))),
                     a.get("nome", ""),
                     a.get("cpf", ""),
                     a.get("email", ""),
                     a.get("curso", a.get("nome_curso", a.get("id_curso", ""))),
                     a.get("status", a.get("situacao", "")),
-                ))
+                ), status_idx=5)
         except Exception as e:
             messagebox.showerror("Alunos", _db.erro_amigavel(e))
 

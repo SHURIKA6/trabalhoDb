@@ -5,31 +5,46 @@ from tkinter import messagebox, ttk
 try:
     from app import auth as _auth
     from app import db as _db
+    from app import ui_theme as T
 except ImportError:
     import auth as _auth  # type: ignore
     import db as _db  # type: ignore
+    import ui_theme as T  # type: ignore
 
 
 class LoginFrame(ttk.Frame):
     def __init__(self, parent, on_sucesso):
-        super().__init__(parent, padding=24)
+        super().__init__(parent, style="Ink.TFrame")
         self.on_sucesso = on_sucesso
 
-        ttk.Label(self, text="SGA — Faculdade do Bug Infinito",
-                  font=("TkDefaultFont", 14, "bold")).grid(row=0, column=0, columnspan=2, pady=(0, 4))
-        ttk.Label(self, text="Entrar com login institucional").grid(row=1, column=0, columnspan=2, pady=(0, 16))
+        cartao = ttk.Frame(self, style="Card.TFrame", padding=(44, 36, 44, 28))
+        cartao.pack(expand=True)
 
-        ttk.Label(self, text="Login:").grid(row=2, column=0, sticky="e", padx=(0, 8), pady=4)
-        self.ent_login = ttk.Entry(self, width=28)
-        self.ent_login.grid(row=2, column=1, pady=4, sticky="w")
+        ttk.Label(cartao, text="∞", style="Card.TLabel",
+                  foreground=T.GOLD, font=T.FONTS["mark"]).pack(anchor="w")
+        ttk.Label(cartao, text="Faculdade do Bug Infinito", style="Card.TLabel",
+                  font=T.FONTS["title"]).pack(anchor="w", pady=(2, 4))
+        ttk.Label(cartao, text="Entrar com login institucional",
+                  style="CardSub.TLabel").pack(anchor="w", pady=(0, 18))
 
-        ttk.Label(self, text="Senha:").grid(row=3, column=0, sticky="e", padx=(0, 8), pady=4)
-        self.ent_senha = ttk.Entry(self, width=28, show="•")
-        self.ent_senha.grid(row=3, column=1, pady=4, sticky="w")
+        T.divisor(cartao).pack(fill="x", pady=(0, 18))
+
+        ttk.Label(cartao, text="Login:", style="CardSub.TLabel").pack(anchor="w")
+        self.ent_login = ttk.Entry(cartao, width=30, font=T.FONTS["body"])
+        self.ent_login.pack(fill="x", pady=(2, 12))
+        self.ent_login.bind("<Return>", lambda _e: self.entrar())
+
+        ttk.Label(cartao, text="Senha:", style="CardSub.TLabel").pack(anchor="w")
+        self.ent_senha = ttk.Entry(cartao, width=30, show="•", font=T.FONTS["body"])
+        self.ent_senha.pack(fill="x", pady=(2, 20))
         self.ent_senha.bind("<Return>", lambda _e: self.entrar())
 
-        self.btn = ttk.Button(self, text="Entrar", command=self.entrar)
-        self.btn.grid(row=4, column=0, columnspan=2, pady=16)
+        self.btn = ttk.Button(cartao, text="Entrar", style="Gold.TButton",
+                              command=self.entrar)
+        self.btn.pack(fill="x")
+
+        ttk.Label(cartao, text="Autenticacao via CALL sp_LoginUsuario (SHA-256)",
+                  style="CardSub.TLabel").pack(anchor="w", pady=(18, 0))
 
         self.ent_login.focus_set()
 

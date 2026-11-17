@@ -38,7 +38,7 @@ mysql -u root -p < sql/02_objetos.sql
 mysql -u root -p < sql/03_dados.sql
 mysql -u root -p < sql/05_sp_apoio.sql
 ```
-
+.venv/bin/python app/main.py
 ## 4. Verificar se o banco está certo
 
 ```sql

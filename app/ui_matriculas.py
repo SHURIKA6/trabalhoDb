@@ -9,8 +9,10 @@ from tkinter import messagebox, ttk
 
 try:
     from app import db as _db
+    from app import ui_theme as T
 except ImportError:
     import db as _db  # type: ignore
+    import ui_theme as T  # type: ignore
 
 
 class MatriculasFrame(ttk.Frame):
@@ -19,33 +21,48 @@ class MatriculasFrame(ttk.Frame):
         self.sessao = sessao
         self._turmas = []
 
-        ttk.Label(self, text="Matricula de aluno em turma",
-                  font=("TkDefaultFont", 12, "bold")).pack(anchor="w", pady=(0, 8))
+        T.screen_header(self, "Matricula de aluno em turma")
 
-        form = ttk.Frame(self)
-        form.pack(fill="x", pady=4)
-        ttk.Label(form, text="RA / ID aluno:").grid(row=0, column=0, sticky="e", padx=(0, 8), pady=4)
-        self.ent_aluno = ttk.Entry(form, width=20)
+        cartao = ttk.Frame(self, style="Card.TFrame", padding=14)
+        cartao.pack(fill="x", pady=(0, 10))
+
+        form = ttk.Frame(cartao, style="Card.TFrame")
+        form.pack(fill="x")
+        ttk.Label(form, text="RA / ID aluno:", style="Card.TLabel").grid(
+            row=0, column=0, sticky="e", padx=(0, 8), pady=4)
+        self.ent_aluno = ttk.Entry(form, width=20, font=T.FONTS["body"])
         self.ent_aluno.grid(row=0, column=1, sticky="w", pady=4)
 
-        ttk.Label(form, text="Turma:").grid(row=1, column=0, sticky="e", padx=(0, 8), pady=4)
-        self.cmb_turma = ttk.Combobox(form, width=60, state="readonly")
+        ttk.Label(form, text="Turma:", style="Card.TLabel").grid(
+            row=1, column=0, sticky="e", padx=(0, 8), pady=4)
+        self.cmb_turma = ttk.Combobox(form, width=60, state="readonly",
+                                      font=T.FONTS["body"])
         self.cmb_turma.grid(row=1, column=1, sticky="w", pady=4)
 
-        botoes = ttk.Frame(self)
-        botoes.pack(fill="x", pady=8)
-        ttk.Button(botoes, text="Recarregar turmas", command=self.carregar_turmas).pack(side="left")
-        ttk.Button(botoes, text="Matricular", command=self.matricular).pack(side="left", padx=8)
+        botoes = ttk.Frame(cartao, style="Card.TFrame")
+        botoes.pack(fill="x", pady=(10, 0))
+        ttk.Button(botoes, text="Recarregar turmas",
+                   command=self.carregar_turmas).pack(side="left")
+        ttk.Button(botoes, text="Matricular", style="Primary.TButton",
+                   command=self.matricular).pack(side="left", padx=8)
 
-        ttk.Label(self, text="Lotacao das turmas (vw_turmas_lotacao):").pack(anchor="w", pady=(8, 2))
-        self.tree = ttk.Treeview(self, columns=("turma", "disc", "vagas", "ocup", "sem"),
+        ttk.Label(self, text="Lotacao das turmas (vw_turmas_lotacao):",
+                  style="Muted.TLabel").pack(anchor="w", pady=(8, 6))
+
+        moldura = T.moldura(self)
+        moldura.pack(side="left", fill="both", expand=True)
+        self.tree = ttk.Treeview(moldura, columns=("turma", "disc", "vagas", "ocup", "sem"),
                                  show="headings", height=14)
         for c, t, w in (("turma", "Turma", 90), ("disc", "Disciplina", 260),
                         ("vagas", "Capacidade", 100), ("ocup", "Ocupadas", 100),
                         ("sem", "Semestre", 120)):
-            self.tree.heading(c, text=t)
+            self.tree.heading(c, text=t, anchor="w")
             self.tree.column(c, width=w)
-        self.tree.pack(fill="both", expand=True)
+        self.tree.pack(side="left", fill="both", expand=True)
+        scroll = ttk.Scrollbar(moldura, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="left", fill="y")
+        T.tag_setup(self.tree)
 
         self.carregar_turmas()
 
@@ -56,8 +73,7 @@ class MatriculasFrame(ttk.Frame):
             messagebox.showerror("Matriculas", _db.erro_amigavel(e))
             return
         self._turmas = rows
-        for i in self.tree.get_children():
-            self.tree.delete(i)
+        T.tree_clear(self.tree)
         opcoes = []
         for t in rows:
             tid = t.get("id_turma", t.get("turma", "?"))
@@ -65,7 +81,12 @@ class MatriculasFrame(ttk.Frame):
             cap = t.get("capacidade", t.get("vagas_totais", t.get("vagas", "?")))
             ocup = t.get("ocupadas", t.get("matriculados", t.get("total", "?")))
             sem = t.get("semestre", t.get("ano_semestre", ""))
-            self.tree.insert("", "end", values=(tid, disc, cap, ocup, sem))
+            try:
+                cheia = int(str(ocup)) >= int(str(cap))
+            except (TypeError, ValueError):
+                cheia = False
+            T.tree_insert(self.tree, (tid, disc, cap, ocup, sem),
+                          extra_tags=("cheio",) if cheia else ())
             opcoes.append(f"{tid} — {disc} (ocup. {ocup}/{cap})")
         self.cmb_turma["values"] = opcoes
         if opcoes:

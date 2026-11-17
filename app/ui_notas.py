@@ -11,8 +11,10 @@ from tkinter import messagebox, ttk
 
 try:
     from app import db as _db
+    from app import ui_theme as T
 except ImportError:
     import db as _db  # type: ignore
+    import ui_theme as T  # type: ignore
 
 
 def _txt(valor):
@@ -28,43 +30,54 @@ class NotasFrame(ttk.Frame):
             ttk.Label(self, text="Acesso restrito ao Coordenador.").pack(pady=20)
             return
 
-        ttk.Label(self, text="Lancar notas", font=("TkDefaultFont", 12, "bold")).pack(anchor="w", pady=(0, 8))
+        T.screen_header(self, "Lancar notas")
 
         busca = ttk.Frame(self)
-        busca.pack(fill="x")
-        ttk.Label(busca, text="RA / ID aluno:").pack(side="left")
-        self.ent_ra = ttk.Entry(busca, width=18)
-        self.ent_ra.pack(side="left", padx=8)
-        ttk.Button(busca, text="Buscar boletim", command=self.buscar).pack(side="left")
-        ttk.Label(busca, text="  (vw_boletim + sp_historico_aluno)").pack(side="left", padx=8)
+        busca.pack(fill="x", pady=(0, 10))
+        ttk.Label(busca, text="RA / ID aluno:", style="Muted.TLabel").pack(side="left")
+        self.ent_ra = ttk.Entry(busca, width=18, font=T.FONTS["body"])
+        self.ent_ra.pack(side="left", padx=(6, 8))
+        ttk.Button(busca, text="Buscar boletim", style="Primary.TButton",
+                   command=self.buscar).pack(side="left")
+        ttk.Label(busca, text="(vw_boletim + sp_historico_aluno)",
+                  style="Sub.TLabel").pack(side="left", padx=(10, 0))
 
-        self.tree = ttk.Treeview(self, columns=("mat", "disc", "n1", "n2", "ex", "media", "sit"),
+        moldura = T.moldura(self)
+        moldura.pack(fill="x", pady=(0, 10))
+        self.tree = ttk.Treeview(moldura, columns=("mat", "disc", "n1", "n2", "ex", "media", "sit"),
                                  show="headings", height=10)
         for c, t, w in (("mat", "Matric.", 70), ("disc", "Disciplina", 220),
                         ("n1", "N1", 60), ("n2", "N2", 60), ("ex", "Exame", 60),
                         ("media", "Media", 70), ("sit", "Situacao", 130)):
-            self.tree.heading(c, text=t)
+            self.tree.heading(c, text=t, anchor="w")
             self.tree.column(c, width=w)
-        self.tree.pack(fill="x", pady=8)
+        self.tree.pack(side="left", fill="both", expand=True)
+        scroll = ttk.Scrollbar(moldura, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="left", fill="y")
+        T.tag_setup(self.tree)
         self.tree.bind("<<TreeviewSelect>>", lambda _e: self._ao_selecionar())
 
-        form = ttk.LabelFrame(self, text="Lancamento (selecione uma linha acima)", padding=10)
-        form.pack(fill="x", pady=4)
-        ttk.Label(form, text="ID matricula:").grid(row=0, column=0, sticky="e", padx=4, pady=2)
-        self.ent_mat = ttk.Entry(form, width=12)
+        form = ttk.LabelFrame(self, text="Lancamento (selecione uma linha acima)", padding=12)
+        form.pack(fill="x", pady=(0, 4))
+        ttk.Label(form, text="ID matricula:", style="Card.TLabel").grid(
+            row=0, column=0, sticky="e", padx=4, pady=2)
+        self.ent_mat = ttk.Entry(form, width=12, font=T.FONTS["body"])
         self.ent_mat.grid(row=0, column=1, pady=2, sticky="w")
-        ttk.Label(form, text="N1:").grid(row=0, column=2, sticky="e", padx=4)
-        self.ent_n1 = ttk.Entry(form, width=8)
+        ttk.Label(form, text="N1:", style="Card.TLabel").grid(row=0, column=2, sticky="e", padx=4)
+        self.ent_n1 = ttk.Entry(form, width=8, font=T.FONTS["body"])
         self.ent_n1.grid(row=0, column=3, sticky="w")
-        ttk.Label(form, text="N2:").grid(row=0, column=4, sticky="e", padx=4)
-        self.ent_n2 = ttk.Entry(form, width=8)
+        ttk.Label(form, text="N2:", style="Card.TLabel").grid(row=0, column=4, sticky="e", padx=4)
+        self.ent_n2 = ttk.Entry(form, width=8, font=T.FONTS["body"])
         self.ent_n2.grid(row=0, column=5, sticky="w")
-        ttk.Label(form, text="Exame:").grid(row=1, column=2, sticky="e", padx=4)
-        self.ent_ex = ttk.Entry(form, width=8)
+        ttk.Label(form, text="Exame:", style="Card.TLabel").grid(row=1, column=2, sticky="e", padx=4)
+        self.ent_ex = ttk.Entry(form, width=8, font=T.FONTS["body"])
         self.ent_ex.grid(row=1, column=3, sticky="w", pady=2)
-        self.btn_notas = ttk.Button(form, text="Lancar N1/N2", command=self.lancar_notas)
+        self.btn_notas = ttk.Button(form, text="Lancar N1/N2", style="Primary.TButton",
+                                    command=self.lancar_notas)
         self.btn_notas.grid(row=1, column=0, columnspan=2, pady=6)
-        self.btn_exame = ttk.Button(form, text="Lancar exame (so 'Em exame')", command=self.lancar_exame)
+        self.btn_exame = ttk.Button(form, text="Lancar exame (so 'Em exame')",
+                                    command=self.lancar_exame)
         self.btn_exame.grid(row=1, column=4, columnspan=2, pady=6)
 
     # -- leitura ---------------------------------------------------------
@@ -73,8 +86,7 @@ class NotasFrame(ttk.Frame):
         if not ra:
             messagebox.showwarning("Notas", "Informe o RA/ID do aluno.")
             return
-        for i in self.tree.get_children():
-            self.tree.delete(i)
+        T.tree_clear(self.tree)
         try:
             # Tenta filtro por colunas mais provaveis de RA na view.
             rows = []
@@ -91,7 +103,7 @@ class NotasFrame(ttk.Frame):
                 rows = [r for r in todas
                         if str(r.get("ra", r.get("id_aluno", r.get("RA", "")))) == ra]
             for r in rows:
-                self.tree.insert("", "end", values=(
+                T.tree_insert(self.tree, (
                     _txt(r.get("id_matricula", r.get("matricula", ""))),
                     _txt(r.get("disciplina", r.get("nome_disciplina", ""))),
                     _txt(r.get("n1", r.get("nota1", ""))),
@@ -99,7 +111,7 @@ class NotasFrame(ttk.Frame):
                     _txt(r.get("exame", r.get("nota_exame", ""))),
                     _txt(r.get("media", r.get("media_final", ""))),
                     _txt(r.get("situacao", r.get("status", ""))),
-                ))
+                ), status_idx=6)
             if not rows:
                 messagebox.showinfo("Notas", "Nenhum registro no boletim para este RA.")
         except Exception as e:

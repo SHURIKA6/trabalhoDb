@@ -17,6 +17,7 @@ trabalhoDb/
 │   ├── permissoes.py      # regras Coordenador x Secretario (+ teste)
 │   ├── ui_login.py        # tela 1 — login
 │   ├── ui_main.py         # tela 2 — menu com controle de perfil
+│   ├── ui_theme.py        # tema visual central (cores/fontes/estilos ttk)
 │   ├── ui_alunos.py       # tela 3 — CRUD alunos (sp_criar/editar/excluir/listar)
 │   ├── ui_matriculas.py   # tela 4 — lotação (vw) + sp_matricular_aluno
 │   ├── ui_notas.py        # tela 5 — só Coordenador (sp_lancar_notas/exame)
