@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGA / FBI — Apresentação (LBD · 23/11/2026)</title>
+<style>
+  :root { --bg:#0f172a; --fg:#e2e8f0; --accent:#38bdf8; --card:#1e293b; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Arial,Helvetica,sans-serif; background:var(--bg); color:var(--fg); }
+  #deck { max-width:960px; margin:0 auto; padding:24px 16px 80px; }
+  .slide { display:none; background:var(--card); border:1px solid #334155; border-radius:12px; padding:40px 44px; min-height:60vh; }
+  .slide.active { display:block; }
+  .slide h1 { font-size:2em; margin:0 0 8px; }
+  .slide h2 { font-size:1.5em; margin:0 0 12px; color:var(--accent); }
+  .slide ul { line-height:1.9; }
+  .slide code { background:#0b1220; padding:1px 6px; border-radius:4px; color:#a5f3fc; }
+  .kicker { color:var(--muted); text-transform:uppercase; letter-spacing:2px; font-size:.8em; margin-bottom:10px; }
+  .foot { margin-top:24px; color:var(--muted); font-size:.9em; border-top:1px solid #334155; padding-top:12px; }
+  table { border-collapse:collapse; width:100%; font-size:.92em; margin-top:12px; }
+  th,td { border:1px solid #475569; padding:6px 10px; text-align:left; }
+  th { background:#0b1220; }
+  .notes { display:none; margin-top:18px; background:#0b1220; border-left:4px solid var(--accent); padding:12px 16px; font-size:.92em; color:#cbd5e1; }
+  body.shownotes .notes { display:block; }
+  #bar { position:fixed; bottom:0; left:0; right:0; background:#0b1220; border-top:1px solid #334155; padding:10px; text-align:center; }
+  #bar button { background:var(--accent); border:none; border-radius:6px; padding:8px 16px; margin:0 4px; cursor:pointer; font-weight:bold; }
+  #bar button.ghost { background:#334155; color:var(--fg); font-weight:normal; }
+  #counter { color:var(--muted); margin:0 12px; }
+  @media print { #bar{display:none;} .slide{display:block; page-break-after:always; border:none;} .notes{display:block;} }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<section class="slide active">
+  <div class="kicker">Slide 1 de 14</div>
+  <h1>SGA — Sistema de Gestão Acadêmica</h1>
+  <h2>Faculdade do Bug Infinito (FBI)</h2>
+  <p>Banco íntegro, seguro e auditável · MySQL 8 + Python (somente SP/View)</p>
+  <div class="foot">LBD · 23/11/2026 · Nome 1 · Nome 2 · Nome 3 · Nome 4</div>
+  <div class="notes"><strong>Orador:</strong> cumprimentar a banca, apresentar o grupo em 20 segundos e anunciar o roteiro: problema, modelagem, arquitetura, regras, segurança, testes, dificuldades e conclusão.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 2 de 14</div>
+  <h2>Agenda</h2>
+  <ul>
+    <li>Problema e objetivos</li>
+    <li>Modelagem (MER + relacional)</li>
+    <li>Arquitetura: somente SP/View</li>
+    <li>Regras RN01–RN09 (com demo)</li>
+    <li>Segurança e perfis</li>
+    <li>Testes (9/9)</li>
+    <li>Dificuldades e soluções</li>
+    <li>Divisão e conclusão</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> a agenda espelha o relatório. Avisar que a demo ao vivo (matrícula + notas + auditoria) ocorre no slide 7.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 3 de 14</div>
+  <h2>Problema</h2>
+  <ul>
+    <li>Matrículas sem pré-requisito, turmas lotadas, médias divergentes</li>
+    <li>Notas alteradas sem auditoria; senhas frágeis</li>
+    <li><strong>Objetivo:</strong> centralizar no banco <code>sga_fbi</code>, com regras dentro do SGBD; aplicação consome apenas procedures e views</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> dar um exemplo concreto de cada dor (ex.: aluno no avançado sem o básico). Conectar cada dor a uma regra RN que a elimina.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 4 de 14</div>
+  <h2>MER — entidades e cardinalidades</h2>
+  <ul>
+    <li>9 entidades: <code>usuario</code>, <code>curso</code>, <code>disciplina</code>, <code>pre_requisito</code> (N:N auto), <code>professor</code>, <code>aluno</code>, <code>turma</code>, <code>matricula</code>, <code>log_nota</code></li>
+    <li>R3: pré-requisito N:N (auto-relacionamento)</li>
+    <li>R6: matrícula como associativa + <code>UNIQUE(aluno, turma)</code></li>
+    <li>R7/R8: auditoria de notas (<code>log_nota</code>)</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> explicar por que matrícula é associativa e por que pré-requisito é auto-relacionamento. Ciclos: CHECK anti-auto-referência + validação na procedure.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 5 de 14</div>
+  <h2>Modelo lógico + 3FN</h2>
+  <ul>
+    <li>9 relações, PKs simples, FKs, <code>UNIQUE</code>s, <code>ENUM</code>s, <code>CHECK</code>s</li>
+    <li>1FN: sem listas em célula (<code>pre_requisito</code> é tabela)</li>
+    <li>2FN: PKs simples, sem dependência parcial</li>
+    <li>3FN: sem transitivas; <code>media_final</code>/<code>situacao</code> são derivados calculados pelo banco</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> usar o exemplo da media_final: fato derivado materializado sob regra determinística — não viola a 3FN.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 6 de 14</div>
+  <h2>Arquitetura: somente SP/View</h2>
+  <ul>
+    <li><code>app/db.py</code>: <code>call_procedure</code> (só <code>sp_*</code>) + <code>select_view</code> (só <code>vw_*</code>); sem query livre</li>
+    <li>Usuário <code>sga_app</code>: <code>EXECUTE</code> + <code>SELECT</code> em views; sem DML direto</li>
+    <li>Erros de regra via <code>SIGNAL 45000</code> → <code>erro_amigavel()</code></li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> mostrar app/db.py (30 s): regexes _PROC_RE/_VIEW_RE e ausência de query(sql). Frase-chave: a aplicação não consegue violar as regras mesmo que queira.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 7 de 14</div>
+  <h2>RN + demo (1): matrícula</h2>
+  <ul>
+    <li>RN01 pré-requisito (<code>fn_VerificarPreRequisito</code>) · RN02 vaga (<code>FOR UPDATE</code>) · RN03 duplicidade</li>
+    <li><strong>Demo:</strong> matrícula sem pré-requisito → erro amigável; matrícula válida → <code>vagas_ocupadas</code> incrementa</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> executar CALL sp_MatricularAluno inválido primeiro (mostra o SIGNAL), depois o válido. Backup: 06_matricula.png.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 8 de 14</div>
+  <h2>RN + demo (2): notas e auditoria</h2>
+  <ul>
+    <li>RN04 média/situação · RN05 domínio 0–10, <code>NULL</code> = não lançada · RN06 auditoria · RN09 exame/trancamento/cancelamento</li>
+    <li><strong>Demo:</strong> <code>sp_LancarNotas</code> → trigger calcula média/situação; linha nova em <code>log_nota</code></li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> mostrar vw_boletim antes/depois e a linha de auditoria (antes/depois + autor). Reforçar: a aplicação nunca envia média.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 9 de 14</div>
+  <h2>Segurança e perfis</h2>
+  <ul>
+    <li>Hash SHA-256 hex (<code>SHA2</code> no banco, <code>hashlib</code> no app); <code>sp_LoginUsuario</code> nunca retorna senha; <code>.env</code> fora do código</li>
+    <li>Secretário opera (cadastros, matrícula, notas) · Coordenador gerencia (turmas, trancamentos, usuários, auditoria)</li>
+    <li>Dupla barreira: tela + <code>GRANT</code></li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> se perguntarem por que não bcrypt: escopo didático do edital, registrado como evolução futura. Nenhuma vw_* expõe senha_hash.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 10 de 14</div>
+  <h2>Testes T01–T09</h2>
+  <table>
+    <tr><th>Bloco</th><th>Testes</th><th>Cobertura</th></tr>
+    <tr><td>Autenticação</td><td>T01</td><td>RN07</td></tr>
+    <tr><td>Matrícula</td><td>T02–T05</td><td>RN01, RN02, RN03</td></tr>
+    <tr><td>Avaliação</td><td>T06–T07</td><td>RN04, RN05</td></tr>
+    <tr><td>Auditoria/acesso</td><td>T08–T09</td><td>RN06, RN08</td></tr>
+  </table>
+  <p><strong>Resultado: 9/9 conforme esperado</strong> (<code>sql/04_testes.sql</code>).</p>
+  <div class="notes"><strong>Orador:</strong> destacar T04 (concorrência) e T07 (NULL). Reprodução: schema → seed → objetos → testes.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 11 de 14</div>
+  <h2>Dificuldades e soluções</h2>
+  <ul>
+    <li>Trigger recursivo/erro 1442 → cálculo em <code>BEFORE</code>, auditoria em <code>AFTER</code></li>
+    <li><code>NULL</code> em notas → convenção "não lançada" + <code>Cursando</code></li>
+    <li>Pré-requisito N:N → <code>NOT EXISTS</code> + anti-ciclo</li>
+    <li>Só-via-SP → <code>db.py</code> + <code>GRANT</code>s</li>
+    <li>Vagas concorrentes → <code>FOR UPDATE</code></li>
+    <li><code>CHECK</code> pré-8.0.16 → validação em procedures/triggers</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> detalhar 2 itens conforme o tempo (sugerido: trigger 1442 e concorrência). Remeter à Seção 14 do relatório.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 12 de 14</div>
+  <h2>Divisão do trabalho</h2>
+  <table>
+    <tr><th>Integrante</th><th>Frente</th></tr>
+    <tr><td>Nome 1</td><td>Modelagem, schema, 3FN</td></tr>
+    <tr><td>Nome 2</td><td>Procedures/functions/triggers, testes</td></tr>
+    <tr><td>Nome 3</td><td>Aplicação, integração, criptografia, telas</td></tr>
+    <tr><td>Nome 4</td><td>Relatório, slides, views, perfis</td></tr>
+  </table>
+  <div class="notes"><strong>Orador:</strong> 20 segundos. Matriz completa em docs/divisao_trabalho.md.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 13 de 14</div>
+  <h2>Conclusão</h2>
+  <ul>
+    <li>Regras no banco, aplicação disciplinada, senhas com hash, auditoria total, 9/9 testes</li>
+    <li>Futuro: bcrypt/argon2, paginação, nota de exame persistida, testes de concorrência, CI</li>
+  </ul>
+  <div class="notes"><strong>Orador:</strong> fechar com a frase-síntese e abrir para perguntas.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Slide 14 de 14</div>
+  <h1>Obrigado — perguntas?</h1>
+  <p><code>docs/relatorio.md</code> · <code>sql/*.sql</code> · <code>app/</code> · <code>app/screenshots/</code> · banco <code>sga_fbi</code></p>
+  <div class="notes"><strong>Orador:</strong> deixar projetado durante as perguntas. Ter à mão: diagrama Mermaid, sql/04_testes.sql e vw_boletim.</div>
+</section>
+
+</div>
+
+<div id="bar">
+  <button onclick="nav(-1)">◀ Anterior</button>
+  <span id="counter">1 / 14</span>
+  <button onclick="nav(1)">Próximo ▶</button>
+  <button class="ghost" onclick="document.body.classList.toggle('shownotes')">Notas (N)</button>
+  <button class="ghost" onclick="window.print()">Imprimir (P)</button>
+</div>
+
+<script>
+let i = 0;
+const slides = document.querySelectorAll('.slide');
+function show(n) {
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach((s, k) => s.classList.toggle('active', k === i));
+  document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+}
+function nav(d) { show(i + d); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') nav(1);
+  if (e.key === 'ArrowLeft') nav(-1);
+  if (e.key === 'n' || e.key === 'N') document.body.classList.toggle('shownotes');
+});
+show(0);
+</script>
+</body>
+</html>

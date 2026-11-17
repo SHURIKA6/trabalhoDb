@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGA / FBI — Relatório Técnico (LBD · 23/11/2026)</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; color: #1a1a1a; line-height: 1.65; }
+  h1, h2, h3 { font-family: Arial, Helvetica, sans-serif; line-height: 1.3; }
+  h1 { text-align: center; }
+  h2 { border-bottom: 2px solid #333; padding-bottom: 4px; margin-top: 2em; }
+  table { border-collapse: collapse; width: 100%; font-size: .92em; margin: 12px 0; }
+  th, td { border: 1px solid #999; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #eee; }
+  code { background: #f4f4f4; padding: 1px 5px; border-radius: 3px; font-size: .92em; }
+  pre { background: #f4f4f4; padding: 14px; overflow-x: auto; border: 1px solid #ccc; border-radius: 4px; font-size: .85em; }
+  .capa { text-align: center; margin: 40px 0 30px; }
+  .nota { background: #fffbe6; border: 1px solid #d9c200; padding: 10px 14px; border-radius: 4px; }
+  @media print { body { max-width: none; } h2 { page-break-after: avoid; } table, pre { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Sistema de Gestão Acadêmica (SGA)<br>Faculdade do Bug Infinito (FBI)</h1>
+  <p><strong>Relatório Técnico</strong></p>
+  <p>Disciplina: LBD — Laboratório de Banco de Dados<br>Data: 23/11/2026</p>
+  <p>Integrantes: Nome 1 · Nome 2 · Nome 3 · Nome 4 (substituir pelos nomes e matrículas oficiais)</p>
+</div>
+
+<p class="nota"><strong>Fonte oficial:</strong> <code>docs/relatorio.md</code>. Esta página (<code>docs/relatorio.html</code>) é a versão de leitura/impressão — use <em>Imprimir &gt; Salvar como PDF</em> para gerar o PDF de entrega. Roteiro de exportação completo em <code>docs/README.md</code>.</p>
+
+<h2>1. Introdução</h2>
+<p>A Faculdade do Bug Infinito (FBI) necessita de um Sistema de Gestão Acadêmica (SGA) que centralize cursos, disciplinas e pré-requisitos, docentes, discentes, turmas, matrículas e avaliações, com integridade, auditabilidade e controle de acesso por perfil. Este relatório documenta modelagem, normalização (3FN), implementação em MySQL 8 (banco <code>sga_fbi</code>), camada programável (procedures, views, functions, triggers), criptografia de senhas, perfis (Secretário e Coordenador), regras RN01–RN09, testes, dificuldades e divisão do trabalho.</p>
+
+<h2>2. Objetivos</h2>
+<p><strong>Geral:</strong> projetar, implementar e validar um banco relacional íntegro e seguro, acessado por aplicação Python exclusivamente via stored procedures (<code>CALL sp_*</code>) e views (<code>SELECT vw_*</code>).</p>
+<p><strong>Específicos:</strong> (1) modelar as 9 entidades com cardinalidades; (2) normalizar até 3FN; (3) implementar regras dentro do banco; (4) senhas somente como hash SHA-256, login sem expor senha; (5) segregar acesso por perfis; (6) cobrir RN01–RN09 com testes reproduzíveis (<code>sql/04_testes.sql</code>).</p>
+
+<h2>3. Metodologia e ferramentas</h2>
+<table>
+<tr><th>Item</th><th>Decisão</th></tr>
+<tr><td>SGBD</td><td>MySQL 8.0 — banco <code>sga_fbi</code></td></tr>
+<tr><td>Aplicação</td><td>Python 3 + <code>mysql-connector-python</code></td></tr>
+<tr><td>Configuração</td><td><code>.env</code> via <code>app/config.py</code>; usuário <code>sga_app</code></td></tr>
+<tr><td>Acesso ao banco</td><td><code>app/db.py</code>: só <code>CALL sp_*</code> e <code>SELECT vw_*</code>; DML direto proibido e validado por regex</td></tr>
+<tr><td>Scripts</td><td><code>sql/01_schema.sql</code> (DDL) · <code>02_dados.sql</code> (seed) · <code>03_objetos.sql</code> (views/functions/procedures/triggers) · <code>04_testes.sql</code> (T01–T09) · <code>05_sp_apoio.sql</code> (apoio ao app)</td></tr>
+</table>
+
+<h2>4. MER textual</h2>
+<p><strong>Entidades:</strong> USUARIO (<code>id_usuario</code>, <code>login</code> único, <code>senha_hash</code> CHAR(64), perfil Secretário/Coordenador, ativo); CURSO; DISCIPLINA (de 1 curso); PRE_REQUISITO (auto-relacionamento N:N de DISCIPLINA, PK composta, sem auto-referência); PROFESSOR; ALUNO (RA/CPF/e-mail únicos, 1 curso, situação Ativo/Trancado/Egresso); TURMA (1 disciplina, 1 professor, vagas_total/vagas_ocupadas); MATRICULA (aluno–turma, P1/P2 anuláveis 0–10, média calculada, frequência, situação; <code>UNIQUE(aluno, turma)</code>); LOG_NOTA (auditoria antes/depois + autor + data).</p>
+<p><strong>Cardinalidades:</strong> CURSO 1:N DISCIPLINA; CURSO 1:N ALUNO; DISCIPLINA N:N DISCIPLINA (via <code>pre_requisito</code>); DISCIPLINA 1:N TURMA; PROFESSOR 1:N TURMA; ALUNO N:N TURMA (via <code>matricula</code>); MATRICULA 1:N LOG_NOTA; USUARIO 1:N LOG_NOTA (informativo).</p>
+
+<h2>5. Modelo Lógico Relacional</h2>
+<ul>
+<li><code>usuario(<u>id_usuario</u>, login (U), senha_hash, perfil, ativo)</code></li>
+<li><code>curso(<u>id_curso</u>, codigo (U), nome, carga_horaria, ativo)</code></li>
+<li><code>disciplina(<u>id_disciplina</u>, codigo (U), nome, carga_horaria, creditos, id_curso → curso)</code></li>
+<li><code>pre_requisito(<u>id_disciplina → disciplina, id_pre_requisito → disciplina</u>)</code></li>
+<li><code>professor(<u>id_professor</u>, nome, cpf (U), email (U), titulacao)</code></li>
+<li><code>aluno(<u>id_aluno</u>, ra (U), nome, cpf (U), email (U), id_curso → curso, data_ingresso, situacao)</code></li>
+<li><code>turma(<u>id_turma</u>, id_disciplina → disciplina, id_professor → professor, ano, semestre, vagas_total, vagas_ocupadas, horario, sala)</code></li>
+<li><code>matricula(<u>id_matricula</u>, id_aluno → aluno, id_turma → turma, data_matricula, nota_p1, nota_p2, media_final, frequencia, situacao, UNIQUE(id_aluno, id_turma))</code></li>
+<li><code>log_nota(<u>id_log</u>, id_matricula → matricula, nota_antiga_p1/p2, nota_nova_p1/p2, usuario_alteracao, data_alteracao)</code></li>
+</ul>
+<p>Diagrama Mermaid completo e instruções de importação (Workbench/draw.io/VSCode): ver Seção 6 de <code>docs/relatorio.md</code>.</p>
+
+<h2>6. Justificativa 3FN</h2>
+<p><strong>1FN:</strong> atributos atômicos; pré-requisitos são linhas de <code>pre_requisito</code>, não listas; notas são colunas escalares. <strong>2FN:</strong> PKs simples (sem dependência parcial); <code>pre_requisito</code> não tem atributos não-chave. <strong>3FN:</strong> sem dependências transitivas — nomes via junção (views só para leitura); <code>media_final</code>/<code>situacao</code> são derivados calculados pelo trigger <code>BEFORE UPDATE</code>, nunca entrada manual; <code>vagas_ocupadas</code> é contador mantido pelo banco com invariante <code>&lt;= vagas_total</code>.</p>
+
+<h2>7. Objetos programáveis</h2>
+<p><strong>Procedures:</strong> <code>sp_CriarUsuario</code>, <code>sp_LoginUsuario</code> (sem retornar senha), <code>sp_CadastrarAluno</code>, <code>sp_CriarTurma</code>, <code>sp_MatricularAluno</code> (pré-requisito + vaga com <code>FOR UPDATE</code> + duplicidade), <code>sp_LancarNotas</code>, <code>sp_RegistrarExame</code>, <code>sp_CancelarMatricula</code>, <code>sp_TrancarAluno / sp_DestrancarAluno</code>; apoio em <code>sql/05_sp_apoio.sql</code>; erros via <code>SIGNAL 45000</code>. <strong>Views:</strong> <code>vw_boletim</code>, <code>vw_TurmasDisponiveis</code>, <code>vw_HistoricoAluno</code>, <code>vw_DiarioTurma</code> (nenhuma expõe <code>senha_hash</code>). <strong>Functions:</strong> <code>fn_VerificarPreRequisito</code> (<code>NOT EXISTS</code>), <code>fn_CalcularSituacao</code> (NULL → Cursando; freq &lt; 75 → Reprovado; ≥ 6 Aprovado; ≥ 4 Em Exame). <strong>Triggers:</strong> <code>BEFORE UPDATE</code> calcula <code>NEW.media_final/situacao</code>; <code>AFTER UPDATE</code> audita em <code>log_nota</code>; sem <code>UPDATE</code> recursivo (erro 1442).</p>
+
+<h2>8. Segurança e perfis</h2>
+<p><strong>Criptografia:</strong> <code>senha_hash CHAR(64)</code> com SHA-256 hexadecimal — <code>SHA2(p_senha,256)</code> no MySQL e <code>hashlib.sha256</code> no app; texto puro nunca persistido; login retorna só id/login/perfil; <code>sga_app</code> com privilégios mínimos; segredos em <code>.env</code>.</p>
+<table>
+<tr><th>Tela / funcionalidade</th><th>Secretário</th><th>Coordenador</th></tr>
+<tr><td>Login, Dashboard</td><td>Permitido (operacional)</td><td>Permitido (gerencial)</td></tr>
+<tr><td>Cadastrar aluno, Matricular, Lançar notas, Exame, Cancelar</td><td>Permitido</td><td>Permitido</td></tr>
+<tr><td>Criar turma, Trancar aluno, Gestão de usuários, Auditoria</td><td>Negado</td><td>Permitido</td></tr>
+<tr><td>Relatórios</td><td>Leitura operacional</td><td>Leitura completa</td></tr>
+</table>
+
+<h2>9. RN01–RN09 (rastreabilidade)</h2>
+<table>
+<tr><th>Regra</th><th>Implementação</th></tr>
+<tr><td>RN01 Pré-requisito</td><td><code>fn_VerificarPreRequisito</code> + <code>sp_MatricularAluno</code></td></tr>
+<tr><td>RN02 Vagas/concorrência</td><td><code>FOR UPDATE</code> + <code>CHECK</code></td></tr>
+<tr><td>RN03 Sem duplicidade</td><td><code>UNIQUE(id_aluno, id_turma)</code></td></tr>
+<tr><td>RN04 Média/situação</td><td>trigger <code>BEFORE</code> + <code>fn_CalcularSituacao</code></td></tr>
+<tr><td>RN05 Domínio 0–10, NULL</td><td><code>CHECK</code> + lógica de NULL</td></tr>
+<tr><td>RN06 Auditoria</td><td>trigger <code>AFTER</code> → <code>log_nota</code></td></tr>
+<tr><td>RN07 Hash de senha</td><td><code>sp_CriarUsuario/sp_LoginUsuario</code></td></tr>
+<tr><td>RN08 Perfis, só SP/View</td><td><code>GRANT</code>s + <code>app/db.py</code></td></tr>
+<tr><td>RN09 Exame/trancamento/cancelamento</td><td><code>sp_RegistrarExame</code>, checagem de situação, <code>sp_CancelarMatricula</code></td></tr>
+</table>
+
+<h2>10. Telas e testes</h2>
+<p><strong>Prints:</strong> <code>app/screenshots/01_login.png</code> … <code>09_auditoria.png</code> (roteiro em <code>app/screenshots/README.md</code>). <strong>Testes T01–T09</strong> (<code>sql/04_testes.sql</code>): T01 login (RN07); T02/T03 pré-requisito (RN01); T04 lotação (RN02); T05 duplicidade (RN03); T06 aprovação (RN04); T07 falta/NULL (RN04/RN05); T08 auditoria (RN06); T09 segregação (RN08) — <strong>9/9 conforme esperado</strong>.</p>
+
+<h2>11. Dificuldades e soluções (resumo)</h2>
+<p>(1) Recursão/erro 1442 — cálculo em <code>BEFORE</code> via <code>NEW</code>, auditoria em <code>AFTER</code> em tabela distinta. (2) <code>NULL</code> — convenção "não lançada", situação <code>Cursando</code>. (3) Pré-requisito N:N — <code>NOT EXISTS</code> + anti-ciclo. (4) Só-via-SP — <code>db.py</code> + <code>GRANT</code>s + mensagens amigáveis. (5) Concorrência de vagas — <code>SELECT ... FOR UPDATE</code> em transação. (6) <code>CHECK</code> pré-8.0.16 — validação duplicada em procedures/triggers. Detalhamento integral na Seção 14 de <code>docs/relatorio.md</code>.</p>
+
+<h2>12. Conclusão, divisão e referências</h2>
+<p>Regras no banco, aplicação disciplinada, senhas com hash, auditoria total, 9/9 testes. Futuro: bcrypt/argon2, paginação, nota de exame persistida, testes de concorrência, CI. Divisão: Nome 1 (modelagem/schema), Nome 2 (banco programável/testes), Nome 3 (aplicação/segurança/telas), Nome 4 (relatório/slides/views/perfis) — detalhe em <code>docs/divisao_trabalho.md</code>. Referências: Heuser (2009); Elmasri &amp; Navathe; Silberschatz et al.; MySQL 8.0 Reference Manual; docs Python <code>hashlib</code>; material LBD 2026.</p>
+
+</body>
+</html>
