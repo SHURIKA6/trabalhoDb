@@ -38,8 +38,10 @@ pandoc docs/relatorio.md -o docs/relatorio.html --standalone --toc -V lang=pt-BR
 
 ## Checklist pré-entrega
 
-- [ ] Substituir `Nome 1..4` por nomes/matrículas em `docs/relatorio.md`,
-      `docs/divisao_trabalho.md` e `slides/apresentacao.md`.
+- [x] Substituir `Nome 1..4` por nomes em `docs/relatorio.md`,
+      `docs/divisao_trabalho.md` e `slides/apresentacao.md` (prof. Francisco
+      Sanches Banhos Filho; matrícula de Danieli preenchida — faltam as dos
+      demais integrantes).
 - [ ] Capturar os 8 prints em `app/screenshots/` (roteiro em
       `app/screenshots/README.md`).
 - [ ] Executar `sql/01_schema.sql` → `02_objetos.sql` → `03_dados.sql` →

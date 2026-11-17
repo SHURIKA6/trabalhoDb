@@ -15,6 +15,11 @@ except ImportError:
     import db as _db  # type: ignore
 
 
+def _txt(valor):
+    """None e Decimal ficam legiveis na tabela: NULL -> vazio."""
+    return "" if valor is None else valor
+
+
 class NotasFrame(ttk.Frame):
     def __init__(self, parent, sessao: dict):
         super().__init__(parent)
@@ -87,13 +92,13 @@ class NotasFrame(ttk.Frame):
                         if str(r.get("ra", r.get("id_aluno", r.get("RA", "")))) == ra]
             for r in rows:
                 self.tree.insert("", "end", values=(
-                    r.get("id_matricula", r.get("matricula", "")),
-                    r.get("disciplina", r.get("nome_disciplina", "")),
-                    r.get("n1", r.get("nota1", "")),
-                    r.get("n2", r.get("nota2", "")),
-                    r.get("exame", r.get("nota_exame", "")),
-                    r.get("media", r.get("media_final", "")),
-                    r.get("situacao", r.get("status", "")),
+                    _txt(r.get("id_matricula", r.get("matricula", ""))),
+                    _txt(r.get("disciplina", r.get("nome_disciplina", ""))),
+                    _txt(r.get("n1", r.get("nota1", ""))),
+                    _txt(r.get("n2", r.get("nota2", ""))),
+                    _txt(r.get("exame", r.get("nota_exame", ""))),
+                    _txt(r.get("media", r.get("media_final", ""))),
+                    _txt(r.get("situacao", r.get("status", ""))),
                 ))
             if not rows:
                 messagebox.showinfo("Notas", "Nenhum registro no boletim para este RA.")

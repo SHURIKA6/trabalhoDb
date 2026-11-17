@@ -11,14 +11,15 @@
 
 | Integrante | Matrícula | Responsabilidades (resumo) |
 |---|---|---|
-| Nome 1 | [matrícula] | Modelagem, schema SQL e normalização |
-| Nome 2 | [matrícula] | Procedures, functions, triggers e testes SQL |
-| Nome 3 | [matrícula] | Aplicação Python (telas, integração, criptografia) |
-| Nome 4 | [matrícula] | Relatório, apresentação, views e segurança/perfis |
+| Manuela Albuquerque Wentz | [matrícula] | Modelagem, schema SQL e normalização |
+| Danieli Cristina de Carvalho Breves | 20250030121 | Procedures, functions, triggers e testes SQL |
+| Fernando Riad da Silva Ribeiro | [matrícula] | Aplicação Python (telas, integração, criptografia) |
+| Nickson Henrique Cavéquia Silva | [matrícula] | Relatório, apresentação, views e segurança/perfis |
 
-> Observação: os nomes acima são placeholders a serem substituídos pelos nomes
-> e matrículas oficiais antes da entrega. O detalhamento da divisão encontra-se
-> na Seção 12 e em `docs/divisao_trabalho.md`.
+> Observação: **Professor:** Francisco Sanches Banhos Filho. A matrícula de
+> Danieli já está preenchida (Sistemas de Informação · danieli.breves@unemat.br);
+> completar as dos demais integrantes antes da entrega. O detalhamento da
+> divisão encontra-se na Seção 16 e em `docs/divisao_trabalho.md`.
 
 ---
 
@@ -659,10 +660,10 @@ views de relatório; (iv) testes automatizados de concorrência;
 
 | Integrante | Tarefas | Artefatos |
 |---|---|---|
-| Nome 1 | MER, modelo lógico, normalização, schema físico | `sql/01_schema.sql`, Seções 4–7 deste relatório |
-| Nome 2 | Procedures, functions, triggers, testes SQL | `sql/02_objetos.sql`, `sql/04_testes.sql`, Seções 9, 11, 13, 14 |
-| Nome 3 | Aplicação Python, integração SP/View, criptografia, telas e screenshots | `app/*`, `sql/05_sp_apoio.sql`, Seções 10, 12 |
-| Nome 4 | Relatório, apresentação, views de relatório, perfis/`GRANT`s | `docs/`, `slides/`, Seções 1–3, 15–17 |
+| Manuela Albuquerque Wentz | MER, modelo lógico, normalização, schema físico | `sql/01_schema.sql`, Seções 4–7 deste relatório |
+| Danieli Cristina de Carvalho Breves | Procedures, functions, triggers, testes SQL | `sql/02_objetos.sql`, `sql/04_testes.sql`, Seções 9, 11, 13, 14 |
+| Fernando Riad da Silva Ribeiro | Aplicação Python, integração SP/View, criptografia, telas e screenshots | `app/*`, `sql/05_sp_apoio.sql`, Seções 10, 12 |
+| Nickson Henrique Cavéquia Silva | Relatório, apresentação, views de relatório, perfis/`GRANT`s | `docs/`, `slides/`, Seções 1–3, 15–17 |
 
 Versão curta (para os slides) em `docs/divisao_trabalho.md`.
 

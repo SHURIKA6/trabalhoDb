@@ -167,7 +167,7 @@ class RelatoriosFrame(ttk.Frame):
                 self.tree_lot.insert("", "end", values=(
                     t.get("id_turma", t.get("turma", "")),
                     t.get("disciplina", t.get("nome_disciplina", "")),
-                    t.get("capacidade", t.get("vagas", "")),
+                    t.get("capacidade", t.get("vagas_totais", t.get("vagas", ""))),
                     t.get("ocupadas", t.get("matriculados", t.get("total", ""))),
                     t.get("semestre", t.get("ano_semestre", "")),
                 ))

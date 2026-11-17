@@ -62,7 +62,7 @@ class MatriculasFrame(ttk.Frame):
         for t in rows:
             tid = t.get("id_turma", t.get("turma", "?"))
             disc = t.get("disciplina", t.get("nome_disciplina", t.get("id_disciplina", "")))
-            cap = t.get("capacidade", t.get("vagas", "?"))
+            cap = t.get("capacidade", t.get("vagas_totais", t.get("vagas", "?")))
             ocup = t.get("ocupadas", t.get("matriculados", t.get("total", "?")))
             sem = t.get("semestre", t.get("ano_semestre", ""))
             self.tree.insert("", "end", values=(tid, disc, cap, ocup, sem))
