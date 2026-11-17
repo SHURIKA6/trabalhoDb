@@ -1,11 +1,5 @@
-"""Lancamento de notas — SOMENTE Coordenador.
-
-- Consulta: SELECT vw_boletim (filtro por RA) e CALL sp_historico_aluno.
-- Escrita: CALL sp_lancar_notas e CALL sp_lancar_exame
-  (exame permitido apenas quando situacao = 'Em exame').
-A GUI bloqueia o botao de exame fora dessa condicao; a procedure tambem
-recusa via SIGNAL 45000, tratado com mensagem amigavel.
-"""
+"""Lançamento de notas e exame pelo coordenador."""
+from decimal import Decimal, InvalidOperation
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -39,16 +33,16 @@ class NotasFrame(ttk.Frame):
         self.ent_ra.pack(side="left", padx=(6, 8))
         ttk.Button(busca, text="Buscar boletim", style="Primary.TButton",
                    command=self.buscar).pack(side="left")
-        ttk.Label(busca, text="(vw_boletim + sp_historico_aluno)",
+        ttk.Label(busca, text="(vw_boletim)",
                   style="Sub.TLabel").pack(side="left", padx=(10, 0))
 
         moldura = T.moldura(self)
         moldura.pack(fill="x", pady=(0, 10))
-        self.tree = ttk.Treeview(moldura, columns=("mat", "disc", "n1", "n2", "ex", "media", "sit"),
+        self.tree = ttk.Treeview(moldura, columns=("mat", "disc", "n1", "n2", "ex", "faltas", "media", "sit"),
                                  show="headings", height=10)
-        for c, t, w in (("mat", "Matric.", 70), ("disc", "Disciplina", 220),
+        for c, t, w in (("mat", "Matric.", 60), ("disc", "Disciplina", 190),
                         ("n1", "N1", 60), ("n2", "N2", 60), ("ex", "Exame", 60),
-                        ("media", "Media", 70), ("sit", "Situacao", 130)):
+                        ("faltas", "Faltas", 55), ("media", "Media", 65), ("sit", "Situacao", 130)):
             self.tree.heading(c, text=t, anchor="w")
             self.tree.column(c, width=w)
         self.tree.pack(side="left", fill="both", expand=True)
@@ -70,6 +64,9 @@ class NotasFrame(ttk.Frame):
         ttk.Label(form, text="N2:", style="Card.TLabel").grid(row=0, column=4, sticky="e", padx=4)
         self.ent_n2 = ttk.Entry(form, width=8, font=T.FONTS["body"])
         self.ent_n2.grid(row=0, column=5, sticky="w")
+        ttk.Label(form, text="Faltas:", style="Card.TLabel").grid(row=0, column=6, sticky="e", padx=4)
+        self.ent_faltas = ttk.Entry(form, width=8, font=T.FONTS["body"])
+        self.ent_faltas.grid(row=0, column=7, sticky="w")
         ttk.Label(form, text="Exame:", style="Card.TLabel").grid(row=1, column=2, sticky="e", padx=4)
         self.ent_ex = ttk.Entry(form, width=8, font=T.FONTS["body"])
         self.ent_ex.grid(row=1, column=3, sticky="w", pady=2)
@@ -82,26 +79,17 @@ class NotasFrame(ttk.Frame):
 
     # -- leitura ---------------------------------------------------------
     def buscar(self):
-        ra = self.ent_ra.get().strip()
-        if not ra:
+        referencia = self.ent_ra.get().strip()
+        if not referencia:
             messagebox.showwarning("Notas", "Informe o RA/ID do aluno.")
             return
         T.tree_clear(self.tree)
         try:
-            # Tenta filtro por colunas mais provaveis de RA na view.
-            rows = []
-            for col in ("ra", "id_aluno", "RA"):
-                try:
-                    rows = _db.select_view("vw_boletim", filters={col: ra})
-                    if rows:
-                        break
-                except Exception:
-                    continue
-            if not rows:
-                # Sem filtro exato: traz amostra e filtra em memoria.
-                todas = _db.select_view("vw_boletim", limit=500)
-                rows = [r for r in todas
-                        if str(r.get("ra", r.get("id_aluno", r.get("RA", "")))) == ra]
+            id_aluno = _db.buscar_id_aluno(referencia)
+            if id_aluno is None:
+                messagebox.showinfo("Notas", "Aluno não encontrado.")
+                return
+            rows = _db.select_view("vw_boletim", filters={"id_aluno": id_aluno})
             for r in rows:
                 T.tree_insert(self.tree, (
                     _txt(r.get("id_matricula", r.get("matricula", ""))),
@@ -109,11 +97,12 @@ class NotasFrame(ttk.Frame):
                     _txt(r.get("n1", r.get("nota1", ""))),
                     _txt(r.get("n2", r.get("nota2", ""))),
                     _txt(r.get("exame", r.get("nota_exame", ""))),
+                    _txt(r.get("faltas", 0)),
                     _txt(r.get("media", r.get("media_final", ""))),
                     _txt(r.get("situacao", r.get("status", ""))),
-                ), status_idx=6)
+                ), status_idx=7)
             if not rows:
-                messagebox.showinfo("Notas", "Nenhum registro no boletim para este RA.")
+                messagebox.showinfo("Notas", "Este aluno ainda não tem matrículas no boletim.")
         except Exception as e:
             messagebox.showerror("Notas", _db.erro_amigavel(e))
 
@@ -121,33 +110,32 @@ class NotasFrame(ttk.Frame):
         sel = self.tree.selection()
         if not sel:
             return
-        vals = self.tree.item(sel[0], "values")
-        self.ent_mat.delete(0, "end")
-        self.ent_mat.insert(0, str(vals[0]))
-        self.ent_n1.delete(0, "end")
-        self.ent_n1.insert(0, str(vals[2] or ""))
-        self.ent_n2.delete(0, "end")
-        self.ent_n2.insert(0, str(vals[3] or ""))
-        self.ent_ex.delete(0, "end")
-        self.ent_ex.insert(0, str(vals[4] or ""))
+        matricula, _, n1, n2, exame, faltas, _, _ = self.tree.item(sel[0], "values")
+        for campo, valor in ((self.ent_mat, matricula), (self.ent_n1, n1), (self.ent_n2, n2),
+                             (self.ent_ex, exame), (self.ent_faltas, faltas)):
+            campo.delete(0, "end")
+            campo.insert(0, valor)
 
     def _situacao_da_linha(self):
         sel = self.tree.selection()
         if not sel:
             return ""
-        return str(self.tree.item(sel[0], "values")[6] or "")
+        return self.tree.set(sel[0], "sit")
 
     # -- escrita: somente CALL -------------------------------------------
     def lancar_notas(self):
         try:
             id_mat = int(self.ent_mat.get().strip())
-            n1 = float(self.ent_n1.get().strip().replace(",", "."))
-            n2 = float(self.ent_n2.get().strip().replace(",", "."))
-        except ValueError:
-            messagebox.showwarning("Notas", "Informe matricula (int) e N1/N2 numericas.")
+            n1 = Decimal(self.ent_n1.get().strip().replace(",", "."))
+            n2 = Decimal(self.ent_n2.get().strip().replace(",", "."))
+            faltas = int(self.ent_faltas.get().strip())
+            if not (0 <= n1 <= 10 and 0 <= n2 <= 10 and faltas >= 0):
+                raise ValueError
+        except (ValueError, InvalidOperation):
+            messagebox.showwarning("Notas", "Informe o ID da matrícula, notas de 0 a 10 e faltas em número inteiro a partir de zero.")
             return
         try:
-            _db.call_procedure("sp_lancar_notas", (id_mat, n1, n2))
+            _db.call_procedure("sp_lancar_notas", (id_mat, n1, n2, faltas, self.sessao["id_usuario"]))
             messagebox.showinfo("Notas", "Notas lancadas.")
             self.buscar()
         except Exception as e:
@@ -162,12 +150,14 @@ class NotasFrame(ttk.Frame):
             return
         try:
             id_mat = int(self.ent_mat.get().strip())
-            ex = float(self.ent_ex.get().strip().replace(",", "."))
-        except ValueError:
-            messagebox.showwarning("Exame", "Informe matricula (int) e nota de exame numerica.")
+            exame = Decimal(self.ent_ex.get().strip().replace(",", "."))
+            if not 0 <= exame <= 10:
+                raise ValueError
+        except (ValueError, InvalidOperation):
+            messagebox.showwarning("Exame", "Informe o ID da matrícula e uma nota de exame de 0 a 10.")
             return
         try:
-            _db.call_procedure("sp_lancar_exame", (id_mat, ex))
+            _db.call_procedure("sp_lancar_exame", (id_mat, exame, self.sessao["id_usuario"]))
             messagebox.showinfo("Exame", "Nota de exame lancada.")
             self.buscar()
         except Exception as e:

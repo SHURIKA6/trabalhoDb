@@ -18,7 +18,8 @@ trabalhoDb/
 │   ├── ui_login.py        # tela 1 — login
 │   ├── ui_main.py         # tela 2 — menu com controle de perfil
 │   ├── ui_theme.py        # tema visual central (cores/fontes/estilos ttk)
-│   ├── ui_alunos.py       # tela 3 — CRUD alunos (sp_criar/editar/excluir/listar)
+│   ├── ui_alunos.py       # tela 3 — CRUD alunos + coluna Matricula (RA) e
+│   │                      #   painel com as matriculas do aluno (vw_boletim)
 │   ├── ui_matriculas.py   # tela 4 — lotação (vw) + sp_matricular_aluno
 │   ├── ui_notas.py        # tela 5 — só Coordenador (sp_lancar_notas/exame)
 │   ├── ui_relatorios.py   # tela 6 — boletim/histórico/lotação/desempenho/

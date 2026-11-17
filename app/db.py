@@ -153,6 +153,13 @@ def select_view(view_name: str, filters=None, order_by=None, limit=None):
             pass
 
 
+def buscar_id_aluno(referencia: str) -> int | None:
+    alunos = select_view("vw_alunos", filters={"ra": referencia}, limit=1)
+    if not alunos and referencia.isascii() and referencia.isdecimal():
+        alunos = select_view("vw_alunos", filters={"id_aluno": referencia}, limit=1)
+    return alunos[0]["id_aluno"] if alunos else None
+
+
 def erro_amigavel(exc: Exception) -> str:
     """Traduz erro MySQL (incl. SIGNAL 1644 / SQLSTATE 45000) p/ mensagem UX."""
     if isinstance(exc, MySQLError):

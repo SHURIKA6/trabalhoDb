@@ -93,8 +93,8 @@ class MatriculasFrame(ttk.Frame):
             self.cmb_turma.current(0)
 
     def matricular(self):
-        ra = self.ent_aluno.get().strip()
-        if not ra:
+        referencia = self.ent_aluno.get().strip()
+        if not referencia:
             messagebox.showwarning("Matricula", "Informe o RA/ID do aluno.")
             return
         if not self._turmas or self.cmb_turma.current() < 0:
@@ -103,7 +103,11 @@ class MatriculasFrame(ttk.Frame):
         turma = self._turmas[self.cmb_turma.current()]
         id_turma = turma.get("id_turma", turma.get("turma"))
         try:
-            _db.call_procedure("sp_matricular_aluno", (ra, id_turma))
+            id_aluno = _db.buscar_id_aluno(referencia)
+            if id_aluno is None:
+                messagebox.showerror("Matricula nao realizada", "Aluno não encontrado.")
+                return
+            _db.call_procedure("sp_matricular_aluno", (id_aluno, id_turma, self.sessao["id_usuario"]))
             messagebox.showinfo("Matricula", "Matricula realizada com sucesso.")
             self.carregar_turmas()
         except Exception as e:
